@@ -99,21 +99,52 @@ GELU(x) = 0.5 * x * (1 + tanh(√(2/π) * (x + 0.044715 * x³)))
 
 ---
 
-### Attention — `Attention.Forward(x)` *(in progress)*
-The core of the transformer. Each token "looks at" other tokens to gather context.
+### Attention — `Attention.Forward(x)`
 
+The core of the transformer. Each token "looks at" other tokens to gather context and update its own meaning.
+
+**Intuition:** Given "The animal didn't cross the street because it was too tired", attention lets "it" figure out it refers to "animal" by comparing their representations.
+
+Each token gets projected into 3 vectors:
+- **Q (Query)** — "What am I looking for?"
+- **K (Key)** — "What do I contain?"
+- **V (Value)** — "What will I share if attended to?"
+
+**Step 1 — Project into Q, K, V:**
 ```
-Q = x · Wq + bq        # What am I looking for?
-K = x · Wk + bk        # What do I contain?
-V = x · Wv + bv        # What will I share?
-
-scores = Q · Kᵀ / √dHead    # How relevant is each token?
-scores = causal_mask(scores) # Can't look at future tokens
-weights = Softmax(scores)
-output  = weights · V        # Weighted sum of values
+Q = x · Wq + bq     shape: [T, dModel]
+K = x · Wk + bk     shape: [T, dModel]
+V = x · Wv + bv     shape: [T, dModel]
 ```
 
-GPT-2 runs this **12 times in parallel** (multi-head), each head learning different relationships.
+**Step 2 — Compute scores:**
+```
+scores = Q · Kᵀ / √dHead    shape: [T, T]
+```
+`scores[i,j]` = how much token `i` attends to token `j`.
+Dividing by `√dHead` prevents large dot products from saturating softmax.
+
+**Step 3 — Causal mask:**
+```
+scores[i,j] = -inf   where j > i
+```
+Token `i` cannot see future tokens. `-inf` becomes `0` after softmax.
+
+**Step 4 — Softmax each row:**
+```
+weights = Softmax(scores)    each row sums to 1
+```
+
+**Step 5 — Weighted sum of V:**
+```
+output = weights · V         shape: [T, dModel]
+```
+Each token's output is a blend of all value vectors, weighted by attention.
+
+**Multi-head:** GPT-2 runs this **12 times in parallel** with different Wq/Wk/Wv weights. Each head learns different relationships (syntax, coreference, proximity). Results are concatenated and projected back:
+```
+output = Concat(head_1, ..., head_12) · Wo + bo
+```
 
 ---
 
@@ -123,8 +154,8 @@ GPT-2 runs this **12 times in parallel** (multi-head), each head learning differ
 |---|---|---|
 | 1 | Tensor | ✅ Done |
 | 2 | MathOps (MatMul, Softmax, LayerNorm, GELU) | ✅ Done |
-| 3 | Attention | 🔄 In progress |
-| 4 | TransformerBlock | ⏳ Pending |
+| 3 | Attention | ✅ Done |
+| 4 | TransformerBlock | 🔄 In progress |
 | 5 | WeightLoader | ⏳ Pending |
 | 6 | Tokenizer | ⏳ Pending |
 | 7 | Generation loop | ⏳ Pending |
