@@ -148,6 +148,43 @@ output = Concat(head_1, ..., head_12) · Wo + bo
 
 ---
 
+### TransformerBlock — `TransformerBlock.Forward(x)`
+
+A transformer block wires Attention and FFN together with **residual connections** and **LayerNorm**. GPT-2 stacks 12 of these blocks.
+
+**Intuition:** Attention figures out *where* to look. FFN figures out *what to do* with that information.
+
+```
+input x
+  │
+  ├─ LayerNorm(x) → Attention ─→ + x   (residual 1)
+  │
+  ├─ LayerNorm(x) → FFN ────────→ + x  (residual 2)
+  │
+output x
+```
+
+**Residual connections** add the input back to the output of each sub-layer. This lets gradients flow easily during training and allows the network to "skip" a layer if needed.
+
+**Sub-layer 1 — Attention:**
+```
+normed = LayerNorm(x, w1, b1)       per token
+x = x + Attention(normed)
+```
+
+**Sub-layer 2 — FFN (Feed-Forward Network):**
+```
+normed = LayerNorm(x, w2, b2)       per token
+h      = normed · W1 + b1           [dModel] → [4*dModel]
+h      = GELU(h)                    non-linearity
+out    = h · W2 + b2                [4*dModel] → [dModel]
+x      = x + out
+```
+
+The 4x expansion in FFN gives the network more capacity to learn complex transformations before projecting back to `dModel`.
+
+---
+
 ## Progress
 
 | Stage | Component | Status |
@@ -155,7 +192,8 @@ output = Concat(head_1, ..., head_12) · Wo + bo
 | 1 | Tensor | ✅ Done |
 | 2 | MathOps (MatMul, Softmax, LayerNorm, GELU) | ✅ Done |
 | 3 | Attention | ✅ Done |
-| 4 | TransformerBlock | 🔄 In progress |
-| 5 | WeightLoader | ⏳ Pending |
-| 6 | Tokenizer | ⏳ Pending |
-| 7 | Generation loop | ⏳ Pending |
+| 4 | TransformerBlock | ✅ Done |
+| 5 | GPT2Model | 🔄 In progress |
+| 6 | WeightLoader | ⏳ Pending |
+| 7 | Tokenizer | ⏳ Pending |
+| 8 | Generation loop | ⏳ Pending |
