@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# GPT-2 weights — too large for git (~500MB)
+weights.bin
