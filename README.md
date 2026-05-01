@@ -4,6 +4,45 @@ A minimal GPT-2 inference engine built in C# to understand the principles of LLM
 
 ---
 
+## Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Python 3.10+](https://www.python.org/) with [uv](https://github.com/astral-sh/uv)
+
+---
+
+## Getting Started
+
+### 1. Clone the repo
+```bash
+git clone https://github.com/elithrade/SimpleGPT2.git
+cd SimpleGPT2
+```
+
+### 2. Download and export GPT-2 weights
+This downloads GPT-2 (small, ~500MB) from HuggingFace and converts it to a binary format our C# engine can read. Only needs to be done once — weights are cached locally afterward.
+
+```bash
+cd scripts
+uv add transformers numpy torch
+uv run export_weights.py
+```
+
+This produces `weights.bin` in the project root (~500MB, not checked into git).
+
+### 3. Build the C# project
+```bash
+cd ..
+dotnet build
+```
+
+### 4. Run inference
+```bash
+dotnet run
+```
+
+---
+
 ## What is Inference?
 
 Inference is running a trained model to produce an output (as opposed to training, which adjusts weights).
