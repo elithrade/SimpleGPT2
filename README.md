@@ -185,6 +185,43 @@ The 4x expansion in FFN gives the network more capacity to learn complex transfo
 
 ---
 
+### GPT2Model — `GPT2Model.Forward(tokenIds)`
+
+The top-level model that wires everything together. Takes token IDs as input, returns logits over the vocabulary.
+
+```
+token IDs  →  Embedding lookup  →  12× TransformerBlock  →  LayerNorm  →  logits
+```
+
+**Step 1 — Token + Positional Embeddings:**
+```
+x[i] = Wte[tokenIds[i]] + Wpe[i]     shape: [T, dModel]
+```
+- `Wte` (shape `[vocab, dModel]`) — maps each token ID to a learned vector
+- `Wpe` (shape `[maxSeq, dModel]`) — adds position information (token 0 vs token 5 need different encodings)
+
+**Step 2 — 12 Transformer Blocks:**
+```
+for each block:
+    x = block.Forward(x)
+```
+Each block refines the token representations using attention + FFN.
+
+**Step 3 — Final LayerNorm:**
+```
+x[i] = LayerNorm(x[i], LnFW, LnFB)   per token row
+```
+
+**Step 4 — Project to logits (weight tying):**
+```
+logits = x · Wteᵀ     shape: [T, vocab_size]
+```
+GPT-2 reuses the token embedding matrix `Wte` transposed as the output projection. This is called **weight tying** — it saves parameters and works surprisingly well.
+
+`logits[T-1]` is the score for every possible next token after the last input token.
+
+---
+
 ## Progress
 
 | Stage | Component | Status |
@@ -193,7 +230,7 @@ The 4x expansion in FFN gives the network more capacity to learn complex transfo
 | 2 | MathOps (MatMul, Softmax, LayerNorm, GELU) | ✅ Done |
 | 3 | Attention | ✅ Done |
 | 4 | TransformerBlock | ✅ Done |
-| 5 | GPT2Model | 🔄 In progress |
-| 6 | WeightLoader | ⏳ Pending |
+| 5 | GPT2Model | ✅ Done |
+| 6 | WeightLoader | 🔄 In progress |
 | 7 | Tokenizer | ⏳ Pending |
 | 8 | Generation loop | ⏳ Pending |
